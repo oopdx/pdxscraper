@@ -74,8 +74,13 @@ class Scraper:
       self.browser.select_form('FormAgcyEmp')
       field = self.browser.form.find_control('__EVENTTARGET')
       field.readonly = False
-      field.value = 'DataGridAgcyEmp$_ctl54$_ctl1'
-      self.browser.form.action = "SMSGoPersonLkp.aspx?LkpBy=LN"
+      # the javascript swaps the '$' for ':'
+      field.value = 'DataGridAgcyEmp:_ctl54:_ctl1'
+      # disable submit buttons. if these are enabled self.browser.submit() uses
+      # them instead, which resets the search.
+      for c in self.browser.form.controls:
+        if c.type == 'submit':
+          c.disabled = True
       self.current_response = self.browser.submit()
       self.process_page()
     except mechanize._mechanize.LinkNotFoundError as error:
