@@ -1,17 +1,21 @@
 from bs4 import BeautifulSoup
 import csv
 import mechanize
+import random
+import time
+import argparse
 
 class Scraper:
   BASE_URL = 'http://dpsstnet.state.or.us/PublicInquiry_CJ/SMSGoPerson.aspx'
   DEPARTMENT_NAME = 'Portland Police Bureau'
 
-  def __init__(self):
+  def __init__(self, max_sleep=5):
     self.browser = mechanize.Browser()
     self.current_response = None
     self.rows = []
     self.file = None
     self.csv = None
+    self.max_sleep = max_sleep
 
   def start_search(self, pattern='*'):
     # Open the page
@@ -81,6 +85,8 @@ class Scraper:
       for c in self.browser.form.controls:
         if c.type == 'submit':
           c.disabled = True
+      # sleep between requests when self.max_sleep > 0
+      time.sleep(random.randint(0, self.max_sleep))
       self.current_response = self.browser.submit()
       self.process_page()
     except mechanize._mechanize.LinkNotFoundError as error:
@@ -90,5 +96,12 @@ class Scraper:
     self.csv.writerow(columns)
 
 if __name__=='__main__':
-  scrapper = Scraper()
-  scrapper.start_search('ab')
+  parser = argparse.ArgumentParser()
+  parser.add_argument('query', type=str, help='Search query to issue')
+  parser.add_argument('-s', '--max-sleep', type=int, default=5, help='Upper limit on random sleep time in seconds between requests (use 0 for no sleep)')
+  args = parser.parse_args()
+  print('args: ', args)
+  if args.max_sleep < 0:
+    raise argparse.ArgumentTypeError('max_sleep value must be >= 0, saw %d' % args.max_sleep)
+  scrapper = Scraper(max_sleep=args.max_sleep)
+  scrapper.start_search(args.query)
